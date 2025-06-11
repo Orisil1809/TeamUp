@@ -22,6 +22,22 @@ let activities = [
     participants: ["ED"],
     maxParticipants: 4,
   },
+  {
+    id: "2",
+    type: "Beer",
+    location: "Local Pub",
+    createdAt: "1 hour ago",
+    participants: ["NewUser"],
+    maxParticipants: 5,
+  },
+  {
+    id: "3",
+    type: "Icecream",
+    location: "Ice Cream Shop",
+    createdAt: "30 minutes ago",
+    participants: ["NewUser", "AnotherUser"],
+    maxParticipants: 3,
+  },
 ];
 
 io.on("connection", (socket) => {
@@ -54,6 +70,10 @@ io.on("connection", (socket) => {
     }
     activities.push(newActivity);
     io.emit("activities", activities);
+  });
+
+  socket.on("fetchActivities", () => {
+    socket.emit("activities", activities);
   });
 });
 
