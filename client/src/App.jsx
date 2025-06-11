@@ -428,9 +428,24 @@ function App() {
     }
   };
 
+  // Helper function to parse DD/MM/YYYY HH:MM string into a Date object
+  const parseDateString = (dateString) => {
+    const parts = dateString.split(/\D+/).filter(Boolean); // Split by non-digits, filter empty strings
+    if (parts.length >= 5) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+      const year = parseInt(parts[2], 10);
+      const hour = parseInt(parts[3], 10);
+      const minute = parseInt(parts[4], 10);
+      return new Date(year, month, day, hour, minute);
+    } else {
+      return new Date(dateString); // Fallback for unexpected formats
+    }
+  };
+
   // Helper function to check if a date is today
   const isToday = (dateString) => {
-    const date = new Date(dateString);
+    const date = parseDateString(dateString);
     const today = new Date();
     return date.getDate() === today.getDate() &&
            date.getMonth() === today.getMonth() &&
@@ -439,21 +454,30 @@ function App() {
 
   // Helper function to check if a date is tomorrow
   const isTomorrow = (dateString) => {
-    const date = new Date(dateString);
+    const date = parseDateString(dateString);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return date.getDate() === tomorrow.getDate() &&
-           date.getMonth() === tomorrow.getMonth() &&
-           date.getFullYear() === tomorrow.getFullYear();
+    // Reset time for accurate date comparison
+    date.setHours(0, 0, 0, 0);
+    tomorrow.setHours(0, 0, 0, 0);
+    return date.getTime() === tomorrow.getTime();
   };
 
   // Helper function to check if a date is this week
   const isThisWeek = (dateString) => {
-    const date = new Date(dateString);
+    const date = parseDateString(dateString);
     const today = new Date();
-    const endOfWeek = new Date(today);
-    endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Set to end of week (Sunday)
-    return date >= today && date <= endOfWeek;
+    // Reset time for accurate date comparison
+    date.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Set to Sunday (0) of current week
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Set to Saturday (6) of current week
+
+    return date >= startOfWeek && date <= endOfWeek;
   };
 
   const filteredActivities = activities.filter(activity => {
