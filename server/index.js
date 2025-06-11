@@ -41,10 +41,17 @@ io.on("connection", (socket) => {
       id: Date.now().toString(),
       type: activityData.type,
       location: activityData.location,
-      createdAt: "Just now",
+      createdAt:
+        activityData.when === "Right now"
+          ? "Just now"
+          : `Starts ${activityData.when}`,
       participants: ["NewUser"], // mocked user
       maxParticipants: activityData.maxParticipants,
     };
+    // If the activity type is 'Custom', use activityName for display
+    if (activityData.type === "Custom") {
+      newActivity.type = activityData.activityName || "Custom Activity";
+    }
     activities.push(newActivity);
     io.emit("activities", activities);
   });
