@@ -24,33 +24,65 @@ header {
 
 header h1 { font-size: 2rem; }
 header p { color: #555; }
-.new-button { background: linear-gradient(to right, #4f46e5, #3b82f6); color: white; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; }
-.refresh-button {
-  background: #eef1f7;
-  color: #555;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  cursor: pointer;
+.new-button { 
+  background: linear-gradient(to right, #4f46e5, #3b82f6); 
+  color: white; 
+  padding: 0.5rem 1rem; 
+  border-radius: 6px; 
+  border: none; 
+  cursor: pointer; 
+  font-size: 1rem;
+  line-height: 1.5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .activity-filters {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1rem;
   background: white;
   border-radius: 8px;
   padding: 0.75rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  align-items: center;
-  flex-direction: row;
 }
 
 .activity-filters .main-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.activity-filters .time-filters {
+  display: flex;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #eee;
+}
+
+.activity-filters .time-filters button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+  transition: all 0.2s ease-in-out;
+}
+
+.activity-filters .time-filters button:hover {
+  background: #eef3ff;
+}
+
+.activity-filters .time-filters button.active {
+  background: #eef3ff;
+  border: 1px solid #c3dafe;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  color: #4f46e5;
+  font-weight: 500;
 }
 
 .activity-filters .custom-filter {
@@ -106,8 +138,27 @@ header p { color: #555; }
 }
 
 .activity-list { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
-.activity-card { background: white; border-radius: 8px; padding: 1rem; width: 250px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.activity-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  width: 250px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  position: relative;
+}
 .activity-card h2 { margin-top: 0.5rem; }
+.past-activity-note {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #f44336; /* Red background */
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  z-index: 10;
+}
 .activity-icon {
   font-size: 2.5rem; /* Adjust icon size as needed */
   margin-bottom: 0.5rem;
@@ -124,6 +175,7 @@ header p { color: #555; }
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 }
 
 .modal-content {
@@ -338,6 +390,12 @@ header p { color: #555; }
   flex-grow: 1;
 }
 
+.invite-activity-button {
+  background: #2196f3; /* Blue for invite */
+  color: white;
+  flex-grow: 1;
+}
+
 .join-activity-button[disabled],
 .new-button[disabled] {
   opacity: 0.7;
@@ -384,4 +442,108 @@ header p { color: #555; }
   10% { opacity: 1; }
   90% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+.notifications-container {
+  /* Removed as the div is no longer the positioning parent */
+}
+
+.notifications-button {
+  position: relative; /* Make the button the positioning context for the dropdown */
+  flex-shrink: 0;
+  flex-grow: 0;
+  white-space: nowrap;
+  display: flex; /* Make it a flex container */
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
+  /* height: 2.5rem; */ /* Removed to allow natural sizing based on padding */
+}
+
+.notifications-dropdown {
+  position: absolute;
+  top: 100%; /* Position below the button */
+  right: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  min-width: 250px;
+  max-width: 350px;
+  z-index: 100;
+  padding: 1rem;
+  margin-top: 0.5rem; /* Space between button and dropdown */
+}
+
+.notifications-dropdown h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.notification-count {
+  background-color: #f44336; /* Red for new notifications */
+  color: white;
+  border-radius: 50%;
+  padding: 2px 7px;
+  font-size: 0.75rem;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-weight: bold;
+}
+
+.notification-item {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.notification-item p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #555;
+  display: flex; /* Make each line a flex container */
+}
+
+.notification-label {
+  font-weight: bold; /* Keep bold for the label */
+  margin-right: 0.5rem; /* Space between label and value */
+  min-width: 110px; /* Adjusted width for better alignment */
+}
+
+.notification-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.notification-actions button {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.notification-actions button:first-child {
+  background-color: #4CAF50; /* Green for accept */
+  color: white;
+}
+
+.notification-actions button:last-child {
+  background-color: #f44336; /* Red for decline */
+  color: white;
+}
+
+.invite-activity-button[disabled] {
+  background: #a0a0a0 !important; /* Darker grey */
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
 }
