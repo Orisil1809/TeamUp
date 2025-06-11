@@ -15,35 +15,7 @@ const io = new Server(server, {
 
 let users = []; // In-memory user store
 
-let activities = [
-  {
-    id: "1",
-    type: "Carpool",
-    location: "Petah Tikva",
-    createdAt: "3 hours ago",
-    participants: ["ED"],
-    maxParticipants: 4,
-    creator: { id: "mock_id_ed", fullName: "ED" },
-  },
-  {
-    id: "2",
-    type: "Beer",
-    location: "Local Pub",
-    createdAt: "1 hour ago",
-    participants: ["NewUser"],
-    maxParticipants: 5,
-    creator: { id: "mock_id_newuser", fullName: "NewUser" },
-  },
-  {
-    id: "3",
-    type: "Icecream",
-    location: "Ice Cream Shop",
-    createdAt: "30 minutes ago",
-    participants: ["NewUser", "AnotherUser"],
-    maxParticipants: 3,
-    creator: { id: "mock_id_newuser", fullName: "NewUser" },
-  },
-];
+let activities = [];
 
 io.on("connection", (socket) => {
   console.log("User connected");

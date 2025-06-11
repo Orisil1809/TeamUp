@@ -22,8 +22,10 @@ function App() {
   const [isLogin, setIsLogin] = useState(true); // true for login, false for signup
   const [authForm, setAuthForm] = useState({ fullName: '', email: '' });
   const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
   const [showEditActivityModal, setShowEditActivityModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [newActivityError, setNewActivityError] = useState('');
 
   useEffect(() => {
     // const storedUser = localStorage.getItem('currentUser');
@@ -39,7 +41,9 @@ function App() {
       setShowAuthModal(false);
       setAuthForm({ fullName: '', email: '' });
       setAuthError('');
-      socket.emit('fetchActivities'); // Fetch activities after successful login
+      setAuthSuccess(`Logged in as ${user.fullName}`);
+      setTimeout(() => setAuthSuccess(''), 3000);
+      socket.emit('fetchActivities');
     });
 
     socket.on('loginFailure', (message) => {
@@ -52,7 +56,9 @@ function App() {
       setShowAuthModal(false);
       setAuthForm({ fullName: '', email: '' });
       setAuthError('');
-      socket.emit('fetchActivities'); // Fetch activities after successful signup
+      setAuthSuccess(`Welcome ${user.fullName}!`);
+      setTimeout(() => setAuthSuccess(''), 3000);
+      socket.emit('fetchActivities');
     });
 
     socket.on('signupFailure', (message) => {
@@ -102,6 +108,20 @@ function App() {
   };
 
   const handleAuthSubmit = () => {
+    setAuthError(''); // Clear previous errors
+
+    if (!authForm.fullName.trim()) {
+      setAuthError('Full Name cannot be empty.');
+      return;
+    }
+
+    // Basic email validation regex
+    const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(authForm.email)) {
+      setAuthError('Please enter a valid email address.');
+      return;
+    }
+
     if (isLogin) {
       socket.emit('login', authForm);
     } else {
@@ -135,7 +155,8 @@ function App() {
   const handleEditActivity = (activity) => {
     setEditingActivity({ 
       ...activity, 
-      when: new Date(activity.createdAt) // Convert createdAt string back to Date object for DatePicker
+      when: new Date(activity.createdAt), // Convert createdAt string back to Date object for DatePicker
+      activityName: activity.type === 'Custom' ? activity.activityName : activity.type // Set activityName to type for non-custom activities
     });
     setShowEditActivityModal(true);
   };
@@ -147,6 +168,8 @@ function App() {
         { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
       ); 
       socket.emit('updateActivity', { ...editingActivity, createdAt: formattedWhen });
+      setShowEditActivityModal(false);
+      setEditingActivity(null);
     }
   };
 
@@ -162,6 +185,14 @@ function App() {
       setShowAuthModal(true);
       return;
     }
+
+    setNewActivityError(''); // Clear previous errors
+
+    if (newActivity.when < new Date()) {
+      setNewActivityError('Activity cannot be created in the past.');
+      return;
+    }
+
     const formattedWhen = newActivity.when.toLocaleString(
       undefined, 
       { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
@@ -183,7 +214,7 @@ function App() {
         return '👤';
       case 'Lunch':
         return '🍽️';
-      case 'Coffee':
+      case 'Coffee Break':
         return '☕';
       case 'Ping Pong':
         return '🏓';
@@ -208,6 +239,7 @@ function App() {
 
   return (
     <div className="app">
+      {authSuccess && <div className="success-message">{authSuccess}</div>}
       <header>
         <div className="header-left">
           <h1>What's happening?</h1>
@@ -263,7 +295,7 @@ function App() {
       )}
 
       <div className="activity-filters">
-        {['All Activities', 'My Activities', 'Lunch', 'Coffee', 'Ping Pong', 'Carpool', 'Beer', 'Icecream', 'Custom'].map(filter => (
+        {['All Activities', 'My Activities', 'Lunch', 'Coffee Break', 'Ping Pong', 'Carpool', 'Beer', 'Icecream', 'Custom'].map(filter => (
           <button 
             key={filter}
             className={selectedFilter === filter ? 'active' : ''}
@@ -311,7 +343,17 @@ function App() {
             <div className="empty-state-icon">+</div>
             <p className="empty-state-text">No activities yet</p>
             <p>Be the first to suggest something fun!</p>
-            <button className="new-button" onClick={() => { setShowAuthModal(true); setIsLogin(false); }}>Start an Activity</button>
+            <button 
+              className="new-button" 
+              onClick={() => { 
+                if (currentUser) {
+                  setShowNewActivityModal(true);
+                } else {
+                  setShowAuthModal(true);
+                  setIsLogin(false);
+                }
+              }}
+            >Start an Activity</button>
           </div>
         )}
       </div>
@@ -321,6 +363,7 @@ function App() {
           <div className="modal-content">
             <h2>Start a New Activity</h2>
             <h3>What are you up for?</h3>
+            {newActivityError && <p className="error-message">{newActivityError}</p>}
             <div className="activity-type-selection">
               <button 
                 className={`activity-type-button ${newActivity.type === 'Lunch' ? 'selected lunch' : ''}`}
@@ -391,6 +434,7 @@ function App() {
                   showTimeSelect
                   dateFormat="Pp"
                   className="date-picker-input"
+                  minDate={new Date()} // Prevent selecting past dates
                 />
               </div>
               <div className="form-group">
@@ -415,7 +459,7 @@ function App() {
             </select>
 
             <div className="modal-buttons">
-              <button onClick={() => setShowNewActivityModal(false)}>Cancel</button>
+              <button onClick={() => { setShowNewActivityModal(false); setNewActivityError(''); }}>Cancel</button>
               <button onClick={createNewActivity}>Start Activity</button>
             </div>
           </div>
@@ -487,7 +531,6 @@ function App() {
               onChange={(e) => setEditingActivity({...editingActivity, activityName: e.target.value})}
               disabled={editingActivity.type !== 'Custom'}
             />
-
             <div className="form-row">
               <div className="form-group">
                 <h3 className="input-label">When?</h3>
@@ -497,6 +540,7 @@ function App() {
                   showTimeSelect
                   dateFormat="Pp"
                   className="date-picker-input"
+                  minDate={new Date()} // Prevent selecting past dates
                 />
               </div>
               <div className="form-group">
@@ -514,6 +558,7 @@ function App() {
             <select 
               value={editingActivity.maxParticipants}
               onChange={(e) => setEditingActivity({...editingActivity, maxParticipants: parseInt(e.target.value)})}
+              disabled={true}
             >
               {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                 <option key={num} value={num}>{num} people</option>
