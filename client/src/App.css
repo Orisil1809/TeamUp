@@ -159,6 +159,19 @@ header p { color: #555; }
   font-weight: bold;
   z-index: 10;
 }
+.private-activity-note {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #6c757d; /* Grey background */
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  z-index: 10;
+}
 .activity-icon {
   font-size: 2.5rem; /* Adjust icon size as needed */
   margin-bottom: 0.5rem;
@@ -546,4 +559,74 @@ header p { color: #555; }
   opacity: 0.7;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem; /* Added for spacing */
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin-right: 0.5rem;
+  width: auto; /* Override default input width */
+  margin-bottom: 0; /* Remove default margin-bottom */
+}
+
+.checkbox-group label {
+  color: #555;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* New styles for the privacy slider */
+.privacy-slider-group {
+  display: flex;
+  align-items: center;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.privacy-label {
+  font-size: 1rem;
+  color: #555;
+  font-weight: bold;
+}
+
+.privacy-slider {
+  display: flex;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+
+.privacy-slider .privacy-option {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+  transition: all 0.2s ease-in-out;
+}
+
+.privacy-slider .privacy-option.active {
+  background: linear-gradient(to right, #4f46e5, #3b82f6); /* Gradient for active state */
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.privacy-slider .privacy-option:first-child.active {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.privacy-slider .privacy-option:last-child.active {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
 }

@@ -16,7 +16,8 @@ function App() {
     activityName: '',
     location: '',
     when: new Date(),
-    maxParticipants: 4
+    maxParticipants: 4,
+    isPrivate: false // New field for privacy setting
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -330,7 +331,8 @@ function App() {
     setEditingActivity({ 
       ...activity, 
       when: new Date(activity.createdAt), // Convert createdAt string back to Date object for DatePicker
-      activityName: activity.type === 'Custom' ? activity.activityName : activity.type // Set activityName to type for non-custom activities
+      activityName: activity.type === 'Custom' ? activity.activityName : activity.type, // Set activityName to type for non-custom activities
+      isPrivate: activity.isPrivate || false // Ensure isPrivate is set, default to false
     });
     setShowEditActivityModal(true);
   };
@@ -373,7 +375,7 @@ function App() {
     ); 
     socket.emit('createActivity', { ...newActivity, when: formattedWhen, userId: currentUser.id, fullName: currentUser.fullName });
     setShowNewActivityModal(false);
-    setNewActivity({ type: '', activityName: '', location: '', when: new Date(), maxParticipants: 4 });
+    setNewActivity({ type: '', activityName: '', location: '', when: new Date(), maxParticipants: 4, isPrivate: false }); // Reset isPrivate to false
   };
 
   const getFilterIcon = (filterType) => {
@@ -430,6 +432,16 @@ function App() {
   };
 
   const filteredActivities = activities.filter(activity => {
+    // Check if the activity is private and if the current user has access
+    const isPrivate = activity.isPrivate;
+    const isCreator = currentUser && activity.creator.id === currentUser.id;
+    const isParticipant = currentUser && activity.participants.includes(currentUser.fullName);
+    const hasAccessToPrivate = !isPrivate || isCreator || isParticipant;
+
+    if (!hasAccessToPrivate) {
+      return false; // Filter out private activities if user doesn't have access
+    }
+
     // First apply type filter
     const typeMatch = selectedFilter === 'All Activities' || 
                      (selectedFilter === 'My Activities' && activity.participants.includes(currentUser ? currentUser.fullName : '')) ||
@@ -568,6 +580,7 @@ function App() {
               {console.log(`formatRelativeTime result for ${a.id}:`, formatRelativeTime(a.createdAt))}
               <div className="activity-icon"><span role="img" aria-label={a.type}>{getFilterIcon(a.type)}</span></div>
               {formatRelativeTime(a.createdAt).isPast && <div className="past-activity-note">Past</div>}
+              {a.isPrivate && <div className="private-activity-note">🔒 Private</div>}
               <h2>{a.type}</h2>
               <p><strong>Creator:</strong> {a.creator.fullName}</p>
               <p><strong>Location:</strong> {a.location}</p>
@@ -724,6 +737,20 @@ function App() {
               ))}
             </select>
 
+            <div className="privacy-slider-group">
+              <span className="privacy-label">Privacy:</span>
+              <div className="privacy-slider">
+                <button 
+                  className={`privacy-option ${!newActivity.isPrivate ? 'active' : ''}`}
+                  onClick={() => setNewActivity({ ...newActivity, isPrivate: false })}
+                >Public</button>
+                <button 
+                  className={`privacy-option ${newActivity.isPrivate ? 'active' : ''}`}
+                  onClick={() => setNewActivity({ ...newActivity, isPrivate: true })}
+                >Private</button>
+              </div>
+            </div>
+
             <div className="modal-buttons">
               <button onClick={() => { setShowNewActivityModal(false); setNewActivityError(''); }}>Cancel</button>
               <button onClick={createNewActivity}>Start Activity</button>
@@ -830,6 +857,20 @@ function App() {
                 <option key={num} value={num}>{num} people</option>
               ))}
             </select>
+
+            <div className="privacy-slider-group">
+              <span className="privacy-label">Privacy:</span>
+              <div className="privacy-slider">
+                <button 
+                  className={`privacy-option ${!editingActivity.isPrivate ? 'active' : ''}`}
+                  onClick={() => setEditingActivity({ ...editingActivity, isPrivate: false })}
+                >Public</button>
+                <button 
+                  className={`privacy-option ${editingActivity.isPrivate ? 'active' : ''}`}
+                  onClick={() => setEditingActivity({ ...editingActivity, isPrivate: true })}
+                >Private</button>
+              </div>
+            </div>
 
             <div className="modal-buttons">
               <button onClick={() => setShowEditActivityModal(false)}>Cancel</button>

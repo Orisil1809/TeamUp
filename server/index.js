@@ -190,7 +190,11 @@ io.on("connection", (socket) => {
   socket.on("updateActivity", (updatedActivity) => {
     activities = activities.map((activity) =>
       activity.id === updatedActivity.id
-        ? { ...updatedActivity, createdAt: updatedActivity.createdAt }
+        ? {
+            ...updatedActivity,
+            createdAt: updatedActivity.createdAt,
+            isPrivate: updatedActivity.isPrivate,
+          }
         : activity
     );
     io.emit("activities", activities);
@@ -200,22 +204,24 @@ io.on("connection", (socket) => {
     const newActivity = {
       id: Date.now().toString(),
       type: activityData.type,
+      activityName: activityData.activityName,
       location: activityData.location,
       createdAt: activityData.when,
-      participants: [activityData.fullName], // Participant is the creator
       maxParticipants: activityData.maxParticipants,
       creator: { id: activityData.userId, fullName: activityData.fullName },
+      participants: [activityData.fullName],
+      isPrivate: activityData.isPrivate || false,
     };
-    // If the activity type is 'Custom', use activityName for display
-    if (activityData.type === "Custom") {
-      newActivity.type = activityData.activityName || "Custom Activity";
-    }
     activities.push(newActivity);
     io.emit("activities", activities);
   });
 
   socket.on("fetchActivities", () => {
     socket.emit("activities", activities);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
   });
 });
 
