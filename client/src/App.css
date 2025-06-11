@@ -1,7 +1,7 @@
 .app {
   font-family: sans-serif;
   padding: 2rem;
-  background: #f5f9ff;
+  background: #eef3ff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -39,20 +39,71 @@ header p { color: #555; }
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  align-items: center;
+  flex-direction: row;
+}
+
+.activity-filters .main-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.activity-filters .custom-filter {
+  /* This block can be removed as custom is now in main-filters */
 }
 
 .activity-filters button {
-  padding: 0.5rem 1rem;
-  background: #eef1f7;
+  padding: 0.75rem 1rem;
+  background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #555;
+  transition: all 0.2s ease-in-out;
 }
 
-.activity-filters button.active { background: #4f46e5; color: white; }
+.activity-filters button:hover {
+  background: #eef3ff;
+}
+
+.activity-filters button.active {
+  background: #eef3ff;
+  border: 1px solid #c3dafe;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.activity-filters button.active span[role="img"] {
+  filter: none;
+}
+
+.activity-filters button.all-activities-button.active {
+  color: #4f46e5;
+}
+
+.activity-filters button.all-activities-button.active span[role="img"] {
+  filter: brightness(0.7) sepia(1) hue-rotate(200deg) saturate(5);
+}
+
+.activity-filters button.all-activities-button {
+  /* No specific styles here when not active, inherits from .activity-filters button */
+}
+
+.activity-filters button.all-activities-button span[role="img"] {
+  /* No specific styles here when not active, inherits from .activity-filters button */
+}
+
+.activity-filters button span[role="img"] {
+  font-size: 1.2rem;
+}
 
 .activity-list { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
 .activity-card { background: white; border-radius: 8px; padding: 1rem; width: 250px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }

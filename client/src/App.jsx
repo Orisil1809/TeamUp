@@ -242,7 +242,7 @@ function App() {
       {authSuccess && <div className="success-message">{authSuccess}</div>}
       <header>
         <div className="header-left">
-          <h1>What's happening?</h1>
+          <h1>TeamUp</h1>
           <p>Join ongoing activities or start something new</p>
         </div>
         <div className="header-right">
@@ -295,16 +295,21 @@ function App() {
       )}
 
       <div className="activity-filters">
-        {['All Activities', 'My Activities', 'Lunch', 'Coffee Break', 'Ping Pong', 'Carpool', 'Beer', 'Icecream', 'Custom'].map(filter => (
-          <button 
-            key={filter}
-            className={selectedFilter === filter ? 'active' : ''}
-            onClick={() => setSelectedFilter(filter)}
-          >
-            <span role="img" aria-label={filter}>{getFilterIcon(filter)}</span>
-            {filter}
-          </button>
-        ))}
+        <div className="main-filters">
+          {['All Activities', 'My Activities', 'Lunch', 'Coffee Break', 'Ping Pong', 'Carpool', 'Beer', 'Icecream', 'Custom'].map(filter => (
+            <button 
+              key={filter}
+              className={`
+                ${selectedFilter === filter ? 'active' : ''}
+                ${filter === 'All Activities' ? 'all-activities-button' : ''}
+              `.trim()}
+              onClick={() => setSelectedFilter(filter)}
+            >
+              <span role="img" aria-label={filter}>{getFilterIcon(filter)}</span>
+              {filter}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="activity-list">
