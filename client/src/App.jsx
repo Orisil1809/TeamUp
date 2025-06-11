@@ -270,7 +270,21 @@ function App() {
 
   // Helper function to format relative time
   const formatRelativeTime = (dateString) => {
-    const date = new Date(dateString);
+    // Parse DD/MM/YYYY, HH:MM string manually for robust date creation
+    const parts = dateString.split(/\D+/).filter(Boolean); // Split by non-digits, filter empty strings
+    let date;
+    if (parts.length >= 5) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+      const year = parseInt(parts[2], 10);
+      const hour = parseInt(parts[3], 10);
+      const minute = parseInt(parts[4], 10);
+      date = new Date(year, month, day, hour, minute);
+    } else {
+      // Fallback for unexpected formats, though not ideal
+      date = new Date(dateString);
+    }
+
     const now = new Date();
     const diffSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
 
@@ -290,7 +304,7 @@ function App() {
           else {
             const diffDays = Math.floor(diffHours / 24);
             if (diffDays < 7) relativeTimeText = `${diffDays} days ago`;
-            else relativeTimeText = `on ${date.toLocaleDateString()}`;
+            else relativeTimeText = `on ${date.toLocaleDateString('en-GB')}`; // Use en-GB for DD/MM/YYYY
           }
         }
       }
@@ -305,7 +319,7 @@ function App() {
         else {
           const diffDays = Math.floor(diffHours / 24);
           if (diffDays < 7) relativeTimeText = `in ${diffDays} days`;
-          else relativeTimeText = `on ${date.toLocaleDateString()}`;
+          else relativeTimeText = `on ${date.toLocaleDateString('en-GB')}`; // Use en-GB for DD/MM/YYYY
         }
       }
     }
@@ -340,8 +354,8 @@ function App() {
   const handleUpdateActivity = () => {
     if (editingActivity) {
       const formattedWhen = editingActivity.when.toLocaleString(
-        undefined, 
-        { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+        'en-GB', // Specify locale for DD/MM/YYYY format
+        { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } // Explicitly define format components
       ); 
       socket.emit('updateActivity', { ...editingActivity, createdAt: formattedWhen });
       setShowEditActivityModal(false);
@@ -364,14 +378,25 @@ function App() {
 
     setNewActivityError(''); // Clear previous errors
 
+    if (!newActivity.type) {
+      setNewActivityError('Please select an activity type.');
+      return;
+    }
+
+    // Validate custom activity name
+    if (newActivity.type === 'Custom' && !newActivity.activityName.trim()) {
+      setNewActivityError('Please enter a name for your custom activity.');
+      return;
+    }
+
     if (newActivity.when < new Date()) {
       setNewActivityError('Activity cannot be created in the past.');
       return;
     }
 
     const formattedWhen = newActivity.when.toLocaleString(
-      undefined, 
-      { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+      'en-GB', // Specify locale for DD/MM/YYYY format
+      { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } // Explicitly define format components
     ); 
     socket.emit('createActivity', { ...newActivity, when: formattedWhen, userId: currentUser.id, fullName: currentUser.fullName });
     setShowNewActivityModal(false);
@@ -576,12 +601,12 @@ function App() {
         {filteredActivities.length > 0 ? (
           filteredActivities.map((a) => (
             <div className="activity-card" key={a.id}>
-              {console.log(`Activity ${a.id}: createdAt=${a.createdAt}`)}
-              {console.log(`formatRelativeTime result for ${a.id}:`, formatRelativeTime(a.createdAt))}
+              {/* console.log(`Activity ${a.id}: createdAt=${a.createdAt}, type=${a.type}, activityName=${a.activityName}`); // Removed debug log */}
+              {/* console.log(`formatRelativeTime result for ${a.id}:`, formatRelativeTime(a.createdAt)); // Removed debug log */}
               <div className="activity-icon"><span role="img" aria-label={a.type}>{getFilterIcon(a.type)}</span></div>
               {formatRelativeTime(a.createdAt).isPast && <div className="past-activity-note">Past</div>}
               {a.isPrivate && <div className="private-activity-note">🔒 Private</div>}
-              <h2>{a.type}</h2>
+              <h2>{a.type === 'Custom' ? a.activityName : a.type}</h2>
               <p><strong>Creator:</strong> {a.creator.fullName}</p>
               <p><strong>Location:</strong> {a.location}</p>
               <p><strong>When:</strong> {a.createdAt} ({formatRelativeTime(a.createdAt).text})</p>
@@ -688,7 +713,7 @@ function App() {
               </button>
               <button 
                 className={`activity-type-button ${newActivity.type === 'Custom' ? 'selected custom' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Custom'})}
+                onClick={() => setNewActivity({...newActivity, type: 'Custom', activityName: ''})}
               >
                 <span role="img" aria-label="custom">⭐</span>
                 <span>Custom</span>
@@ -711,7 +736,7 @@ function App() {
                   selected={newActivity.when}
                   onChange={(date) => setNewActivity({ ...newActivity, when: date })}
                   showTimeSelect
-                  dateFormat="Pp"
+                  dateFormat="dd/MM/yyyy HH:mm" // Change format to DD/MM/YYYY HH:mm
                   className="date-picker-input"
                   minDate={new Date()} // Prevent selecting past dates
                 />
@@ -831,7 +856,7 @@ function App() {
                   selected={editingActivity.when}
                   onChange={(date) => setEditingActivity({ ...editingActivity, when: date })}
                   showTimeSelect
-                  dateFormat="Pp"
+                  dateFormat="dd/MM/yyyy HH:mm" // Change format to DD/MM/YYYY HH:mm
                   className="date-picker-input"
                   minDate={new Date()} // Prevent selecting past dates
                 />
