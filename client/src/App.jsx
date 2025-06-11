@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import './App.css';
 
 const socket = io('http://localhost:4000');
@@ -12,7 +14,7 @@ function App() {
     type: '',
     activityName: '',
     location: '',
-    when: 'Right now',
+    when: new Date(),
     maxParticipants: 4
   });
 
@@ -26,9 +28,14 @@ function App() {
   };
 
   const createNewActivity = () => {
-    socket.emit('createActivity', newActivity);
+    // Format the date and time before sending to the server
+    const formattedWhen = newActivity.when.toLocaleString(
+      undefined, 
+      { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+    ); 
+    socket.emit('createActivity', { ...newActivity, when: formattedWhen });
     setShowNewActivityModal(false);
-    setNewActivity({ type: '', activityName: '', location: '', when: 'Right now', maxParticipants: 4 });
+    setNewActivity({ type: '', activityName: '', location: '', when: new Date(), maxParticipants: 4 });
   };
 
   const refreshActivities = () => {
@@ -99,9 +106,9 @@ function App() {
               <div className="activity-icon"><span role="img" aria-label={a.type}>{getFilterIcon(a.type)}</span></div>
               <h2>{a.type}</h2>
               <p><strong>Location:</strong> {a.location}</p>
-              <p><strong>Started:</strong> {a.createdAt}</p>
+              <p><strong>When:</strong> {a.createdAt}</p>
               <p><strong>Participants:</strong> {a.participants.length}/{a.maxParticipants} <span className="spots-left">({a.maxParticipants - a.participants.length} spots left)</span></p>
-              <button onClick={() => joinActivity(a.id)}>Join Activity</button>
+              <button onClick={() => joinActivity(a.id)} className="join-activity-button">Join Activity</button>
             </div>
           ))
         ) : (
@@ -122,8 +129,8 @@ function App() {
             <div className="activity-type-selection">
               <button 
                 className={`activity-type-button ${newActivity.type === 'Lunch' ? 'selected lunch' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Lunch', activityName: 'Lunch'})
-              }>
+                onClick={() => setNewActivity({...newActivity, type: 'Lunch', activityName: 'Lunch'})}
+              >
                 <span role="img" aria-label="lunch">🍽️</span>
                 <span>Lunch</span>
               </button>
@@ -183,13 +190,13 @@ function App() {
             <div className="form-row">
               <div className="form-group">
                 <h3 className="input-label">When?</h3>
-                <select 
-                  value={newActivity.when} 
-                  onChange={(e) => setNewActivity({...newActivity, when: e.target.value})}
-                >
-                  <option value="Right now">Right now</option>
-                  {/* Add more time options here if needed */}
-                </select>
+                <DatePicker
+                  selected={newActivity.when}
+                  onChange={(date) => setNewActivity({ ...newActivity, when: date })}
+                  showTimeSelect
+                  dateFormat="Pp"
+                  className="date-picker-input"
+                />
               </div>
               <div className="form-group">
                 <h3 className="input-label">Where? (optional)</h3>

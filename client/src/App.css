@@ -147,13 +147,14 @@ header p { color: #555; }
 }
 
 .modal-content input,
-.modal-content select {
+.modal-content select,
+.date-picker-input {
   width: 100%;
   padding: 0.75rem;
   margin-bottom: 1rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  box-sizing: border-box;
+  box-sizing: border-box; /* Ensures padding doesn't increase width */
 }
 
 .form-row {
@@ -214,4 +215,24 @@ header p { color: #555; }
 
 .empty-state .new-button {
   margin-top: 1rem;
+}
+
+.activity-card button {
+  background: linear-gradient(to right, #4f46e5, #3b82f6); /* Modern gradient */
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: bold;
+  transition: all 0.2s ease-in-out;
+  margin-top: 1rem; /* Space from content above */
+  width: 100%; /* Make button full width */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.activity-card button:hover {
+  opacity: 0.9; /* Slight fade on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }

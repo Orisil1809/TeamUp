@@ -57,10 +57,7 @@ io.on("connection", (socket) => {
       id: Date.now().toString(),
       type: activityData.type,
       location: activityData.location,
-      createdAt:
-        activityData.when === "Right now"
-          ? "Just now"
-          : `Starts ${activityData.when}`,
+      createdAt: activityData.when,
       participants: ["NewUser"], // mocked user
       maxParticipants: activityData.maxParticipants,
     };
