@@ -236,3 +236,75 @@ header p { color: #555; }
   opacity: 0.9; /* Slight fade on hover */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
+
+.participant-list {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  word-break: break-word; /* Ensures long names wrap */
+}
+
+.activity-card-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.activity-card-buttons button {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: bold;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.join-activity-button {
+  background: linear-gradient(to right, #4f46e5, #3b82f6);
+  color: white;
+  width: 100%; /* Make join button full width */
+}
+
+.leave-activity-button {
+  background: #f44336; /* Red for leave */
+  color: white;
+  flex-grow: 1; /* Allow leave button to expand */
+}
+
+.edit-activity-button {
+  background: #ffc107; /* Yellow/orange for edit */
+  color: white;
+  flex-grow: 1;
+}
+
+.delete-activity-button {
+  background: #9e9e9e; /* Grey for delete */
+  color: white;
+  flex-grow: 1;
+}
+
+.join-activity-button[disabled],
+.new-button[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #a0a0a0 !important; /* Darker grey */
+  box-shadow: none;
+}
+
+.auth-toggle-text {
+  margin-top: 1rem;
+  text-align: center;
+  color: #555;
+}
+
+.auth-toggle-link {
+  color: #4f46e5; /* A distinct color to make it look like a link */
+  cursor: pointer;
+  text-decoration: underline; /* Underline to indicate clickability */
+  margin-left: 0.5rem;
+  font-weight: bold;
+}
