@@ -2,6 +2,8 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
+const OpenAI = require("openai");
+require("dotenv").config();
 
 const app = express();
 app.use(cors());
@@ -14,11 +16,69 @@ const io = new Server(server, {
   },
 });
 
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 let users = []; // In-memory user store
 
 let activities = [];
 
 let invitations = []; // New in-memory invitations store
+
+app.post("/api/search-activities", async (req, res) => {
+  const { query, activities: activitiesData } = req.body;
+
+  if (!query || !activitiesData) {
+    return res
+      .status(400)
+      .json({ message: "Query and activities data are required." });
+  }
+
+  const formattedActivities = activitiesData.map((activity) => {
+    return {
+      id: activity.id,
+      title: activity.title || activity.type,
+      location: activity.location || "N/A",
+      time: activity.createdAt || "N/A",
+      creator_name: activity.creator?.fullName || "Unknown Creator",
+      max_participants: activity.maxParticipants || 0,
+      activity_type: activity.type || "Unknown",
+      privacy: activity.isPrivate ? "private" : "public",
+    };
+  });
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that identifies the most relevant activity IDs from the list. Consider the following activity attributes for relevance: 'id', 'title', 'location', 'time', 'creator_name', 'max_participants', 'activity_type', and 'privacy'. Return only a comma-separated list of matching activity IDs, or 'none' if there are no matches. Do not include any explanations or extra text.",
+        },
+        {
+          role: "user",
+          content: `Given the user query: "${query}", and the following activities: ${JSON.stringify(
+            formattedActivities
+          )}. Based on the user's query, identify the most relevant activity IDs from the provided list.`,
+        },
+      ],
+      max_tokens: 100,
+    });
+
+    const gptResponse = completion.choices[0].message.content.trim();
+    console.log("GPT Response:", gptResponse);
+
+    if (gptResponse.toLowerCase() === "none" || gptResponse.trim() === "") {
+      return res.json({ relevantActivityIds: [] });
+    }
+
+    const relevantIds = gptResponse.split(",").map((id) => id.trim());
+    return res.json({ relevantActivityIds: relevantIds });
+  } catch (error) {
+    console.error("Error calling OpenAI API:", error);
+    return res.status(500).json({ message: "Error processing search query." });
+  }
+});
 
 app.post("/api/invite", (req, res) => {
   const { activityId, invitedUserName, invitedByUserId } = req.body;
@@ -205,12 +265,18 @@ io.on("connection", (socket) => {
       id: Date.now().toString(),
       type: activityData.type,
       activityName: activityData.activityName,
-      location: activityData.location,
+      location: activityData.location || "N/A",
       createdAt: activityData.when,
       maxParticipants: activityData.maxParticipants,
       creator: { id: activityData.userId, fullName: activityData.fullName },
       participants: [activityData.fullName],
       isPrivate: activityData.isPrivate || false,
+      title: activityData.activityName || activityData.type,
+      description: `${activityData.location || "N/A"} ${activityData.when} ${
+        activityData.fullName
+      } ${activityData.maxParticipants} ${activityData.type} ${
+        activityData.isPrivate ? "private" : "public"
+      }`,
     };
     activities.push(newActivity);
     io.emit("activities", activities);

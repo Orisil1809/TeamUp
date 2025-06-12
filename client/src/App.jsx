@@ -3,6 +3,7 @@ import io from 'socket.io-client';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './App.css';
+import logo from './assets/logo.png'; // Import the logo image
 
 const socket = io('http://localhost:4000');
 
@@ -35,6 +36,10 @@ function App() {
   const [inviteMessageType, setInviteMessageType] = useState('');
   const [showNotifications, setShowNotifications] = useState(false); // New state for notifications dropdown
   const [userInvitations, setUserInvitations] = useState([]); // New state to store user invitations
+  const [searchQuery, setSearchQuery] = useState(''); // New state for search query
+  const [searchResultIds, setSearchResultIds] = useState(null); // New state for search results (null for no search, empty array for no matches)
+  const [searchMessage, setSearchMessage] = useState(''); // New state for search feedback message
+  const [showSearchFeedback, setShowSearchFeedback] = useState(false); // New state for search feedback modal
 
   useEffect(() => {
     console.log('useEffect triggered. Current User:', currentUser);
@@ -491,6 +496,15 @@ function App() {
       return false; // Filter out private activities if user doesn't have access
     }
 
+    // Apply search filter if a search has been performed
+    if (searchResultIds !== null) {
+      if (searchResultIds.length === 0) {
+        return false; // No matches from search
+      } else if (!searchResultIds.includes(activity.id)) {
+        return false; // Activity not in search results
+      }
+    }
+
     // First apply type filter
     const typeMatch = selectedFilter === 'All Activities' || 
                      (selectedFilter === 'My Activities' && activity.participants.includes(currentUser ? currentUser.fullName : '')) ||
@@ -505,13 +519,86 @@ function App() {
     return typeMatch && timeMatch;
   });
 
+  // New handleSearch function
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchMessage('');
+      setSearchResultIds(null); // Clear search results if query is empty
+      return;
+    }
+
+    setSearchMessage('Searching...');
+    setShowSearchFeedback(true);
+
+    // Format activities with all required fields
+    const activitiesForGPT = activities.map(a => ({
+      id: a.id,
+      title: a.activityName || a.type,
+      location: a.location || "N/A",
+      time: a.createdAt || "N/A",
+      creator_name: a.creator?.fullName || "Unknown Creator",
+      max_participants: a.maxParticipants || 0,
+      activity_type: a.type || "Unknown",
+      privacy: a.isPrivate ? "private" : "public"
+    }));
+
+    try {
+      const response = await fetch('http://localhost:4000/api/search-activities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: searchQuery, activities: activitiesForGPT }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.relevantActivityIds && data.relevantActivityIds.length > 0) {
+          setSearchResultIds(data.relevantActivityIds);
+          setSearchMessage(''); // Clear message on successful search
+          setShowSearchFeedback(false); // Hide feedback modal on success
+        } else {
+          setSearchResultIds([]); // No relevant activities found
+          setSearchMessage('No activities found matching your search.');
+        }
+      } else {
+        // Handle cases where backend returns an error message
+        if (data.message && data.message.includes("Error processing search query")){
+            setSearchMessage('We couldn\'t understand your search. Try something more specific.');
+        } else {
+            setSearchMessage(data.message || 'An error occurred during search.');
+        }
+        setSearchResultIds([]); // Clear results on error
+      }
+    } catch (error) {
+      console.error('Search API error:', error);
+      setSearchMessage('Failed to connect to search service. Please try again later.');
+      setSearchResultIds([]); // Clear results on network error
+    } finally {
+      setSearchQuery(''); // Clear search input after search
+    }
+  };
+
+  // Update filter click handler
+  const handleFilterClick = (filter) => {
+    setSelectedFilter(filter);
+    setSearchResultIds(null); // Clear search results when changing filters
+  };
+
+  // Update time filter click handler
+  const handleTimeFilterClick = (timeFilter) => {
+    setSelectedTimeFilter(timeFilter);
+    setSearchResultIds(null); // Clear search results when changing time filters
+  };
+
   return (
     <div className="app">
       {authSuccess && <div className="success-message">{authSuccess}</div>}
       <header>
         <div className="header-left">
-          <h1>TeamUp</h1>
-          <p>Join ongoing activities or start something new</p>
+          <img src={logo} alt="TeamUp Logo" className="app-logo" />
+        <p>Join ongoing activities or start something new</p>
         </div>
         <div className="header-right">
           {currentUser ? (
@@ -550,6 +637,20 @@ function App() {
               )}
             </button>
           )}
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Search activities (e.g., 'lunch with team', 'outdoor walk this weekend')"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+            />
+            <button onClick={handleSearch}>Search</button>
+          </div>
           <button 
             className="new-button"
             onClick={() => setShowNewActivityModal(true)}
@@ -601,7 +702,7 @@ function App() {
                 ${selectedFilter === filter ? 'active' : ''}
                 ${filter === 'All Activities' ? 'all-activities-button' : ''}
               `.trim()}
-              onClick={() => setSelectedFilter(filter)}
+              onClick={() => handleFilterClick(filter)}
             >
               <span role="img" aria-label={filter}>{getFilterIcon(filter)}</span>
               {filter}
@@ -613,7 +714,7 @@ function App() {
             <button
               key={timeFilter}
               className={`${selectedTimeFilter === timeFilter ? 'active' : ''}`}
-              onClick={() => setSelectedTimeFilter(timeFilter)}
+              onClick={() => handleTimeFilterClick(timeFilter)}
             >
               {timeFilter}
             </button>
@@ -624,7 +725,7 @@ function App() {
       <div className="activity-list">
         {filteredActivities.length > 0 ? (
           filteredActivities.map((a) => (
-            <div className="activity-card" key={a.id}>
+          <div className="activity-card" key={a.id}>
               {/* console.log(`Activity ${a.id}: createdAt=${a.createdAt}, type=${a.type}, activityName=${a.activityName}`); // Removed debug log */}
               {/* console.log(`formatRelativeTime result for ${a.id}:`, formatRelativeTime(a.createdAt)); // Removed debug log */}
               <div className="activity-icon"><span role="img" aria-label={a.type}>{getFilterIcon(a.type)}</span></div>
@@ -632,9 +733,9 @@ function App() {
               {a.isPrivate && <div className="private-activity-note">🔒 Private</div>}
               <h2>{a.type === 'Custom' ? a.activityName : a.type}</h2>
               <p><strong>Creator:</strong> {a.creator.fullName}</p>
-              <p><strong>Location:</strong> {a.location}</p>
+            <p><strong>Location:</strong> {a.location}</p>
               <p><strong>When:</strong> {a.createdAt} ({formatRelativeTime(a.createdAt).text})</p>
-              <p><strong>Participants:</strong> {a.participants.length}/{a.maxParticipants} <span className="spots-left">({a.maxParticipants - a.participants.length} spots left)</span></p>
+            <p><strong>Participants:</strong> {a.participants.length}/{a.maxParticipants} <span className="spots-left">({a.maxParticipants - a.participants.length} spots left)</span></p>
               <p className="participant-list">{a.participants.map(p => `👤 ${p}`).join(', ')}</p>
               <div className="activity-card-buttons">
                 {currentUser && a.creator.id === currentUser.id ? (
@@ -690,113 +791,114 @@ function App() {
         <div className="modal">
           <div className="modal-content">
             <h2>Start a New Activity</h2>
-            <h3>What are you up for?</h3>
-            {newActivityError && <p className="error-message">{newActivityError}</p>}
-            <div className="activity-type-selection">
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Lunch' ? 'selected lunch' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Lunch', activityName: 'Lunch'})}
-              >
-                <span role="img" aria-label="lunch">🍽️</span>
-                <span>Lunch</span>
-              </button>
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Coffee Break' ? 'selected coffee' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Coffee Break', activityName: 'Coffee Break'})}
-              >
-                <span role="img" aria-label="coffee">☕</span>
-                <span>Coffee Break</span>
-              </button>
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Ping Pong' ? 'selected pingpong' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Ping Pong', activityName: 'Ping Pong'})}
-              >
-                <span role="img" aria-label="ping pong">🏓</span>
-                <span>Ping Pong</span>
-              </button>
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Carpool' ? 'selected carpool' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Carpool', activityName: 'Carpool'})}
-              >
-                <span role="img" aria-label="carpool">🚗</span>
-                <span>Carpool</span>
-              </button>
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Beer' ? 'selected beer' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Beer', activityName: 'Beer'})}
-              >
-                <span role="img" aria-label="beer">🍺</span>
-                <span>Beer</span>
-              </button>
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Icecream' ? 'selected icecream' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Icecream', activityName: 'Icecream'})}
-              >
-                <span role="img" aria-label="icecream">🍦</span>
-                <span>Icecream</span>
-              </button>
-              <button 
-                className={`activity-type-button ${newActivity.type === 'Custom' ? 'selected custom' : ''}`}
-                onClick={() => setNewActivity({...newActivity, type: 'Custom', activityName: ''})}
-              >
-                <span role="img" aria-label="custom">⭐</span>
-                <span>Custom</span>
-              </button>
-            </div>
-
-            <h3 className="input-label">Activity Name</h3>
-            <input 
-              type="text" 
-              placeholder="What's the activity?" 
-              value={newActivity.activityName || ''}
-              onChange={(e) => setNewActivity({...newActivity, activityName: e.target.value})}
-              disabled={newActivity.type !== 'Custom'}
-            />
-
-            <div className="form-row">
-              <div className="form-group">
-                <h3 className="input-label">When?</h3>
-                <DatePicker
-                  selected={newActivity.when}
-                  onChange={(date) => setNewActivity({ ...newActivity, when: date })}
-                  showTimeSelect
-                  dateFormat="dd/MM/yyyy HH:mm" // Change format to DD/MM/YYYY HH:mm
-                  className="date-picker-input"
-                  minDate={new Date()} // Prevent selecting past dates
-                />
-              </div>
-              <div className="form-group">
-                <h3 className="input-label">Where? (optional)</h3>
-                <input 
-                  type="text" 
-                  placeholder="Cafeteria, Game Room, etc." 
-                  value={newActivity.location}
-                  onChange={(e) => setNewActivity({...newActivity, location: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <h3 className="input-label">Maximum participants</h3>
-            <select 
-              value={newActivity.maxParticipants}
-              onChange={(e) => setNewActivity({...newActivity, maxParticipants: parseInt(e.target.value)})}
-            >
-              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                <option key={num} value={num}>{num} people</option>
-              ))}
-            </select>
-
-            <div className="privacy-slider-group">
-              <span className="privacy-label">Privacy:</span>
-              <div className="privacy-slider">
+            <div className="modal-scrollable-content">
+              <h3>What are you up for?</h3>
+              <div className="activity-type-selection">
                 <button 
-                  className={`privacy-option ${!newActivity.isPrivate ? 'active' : ''}`}
-                  onClick={() => setNewActivity({ ...newActivity, isPrivate: false })}
-                >Public</button>
+                  className={`activity-type-button ${newActivity.type === 'Lunch' ? 'selected lunch' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Lunch', activityName: 'Lunch'})}
+                >
+                  <span role="img" aria-label="lunch">🍽️</span>
+                  <span>Lunch</span>
+                </button>
                 <button 
-                  className={`privacy-option ${newActivity.isPrivate ? 'active' : ''}`}
-                  onClick={() => setNewActivity({ ...newActivity, isPrivate: true })}
-                >Private</button>
+                  className={`activity-type-button ${newActivity.type === 'Coffee Break' ? 'selected coffee' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Coffee Break', activityName: 'Coffee Break'})}
+                >
+                  <span role="img" aria-label="coffee">☕</span>
+                  <span>Coffee Break</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${newActivity.type === 'Ping Pong' ? 'selected pingpong' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Ping Pong', activityName: 'Ping Pong'})}
+                >
+                  <span role="img" aria-label="ping pong">🏓</span>
+                  <span>Ping Pong</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${newActivity.type === 'Carpool' ? 'selected carpool' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Carpool', activityName: 'Carpool'})}
+                >
+                  <span role="img" aria-label="carpool">🚗</span>
+                  <span>Carpool</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${newActivity.type === 'Beer' ? 'selected beer' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Beer', activityName: 'Beer'})}
+                >
+                  <span role="img" aria-label="beer">🍺</span>
+                  <span>Beer</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${newActivity.type === 'Icecream' ? 'selected icecream' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Icecream', activityName: 'Icecream'})}
+                >
+                  <span role="img" aria-label="icecream">🍦</span>
+                  <span>Icecream</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${newActivity.type === 'Custom' ? 'selected custom' : ''}`}
+                  onClick={() => setNewActivity({...newActivity, type: 'Custom', activityName: ''})}
+                >
+                  <span role="img" aria-label="custom">⭐</span>
+                  <span>Custom</span>
+                </button>
+              </div>
+
+              <h3 className="input-label">Activity Name</h3>
+              <input 
+                type="text" 
+                placeholder="What's the activity?" 
+                value={newActivity.activityName || ''}
+                onChange={(e) => setNewActivity({...newActivity, activityName: e.target.value})}
+                disabled={newActivity.type !== 'Custom'}
+              />
+
+              <div className="form-row">
+                <div className="form-group">
+                  <h3 className="input-label">When?</h3>
+                  <DatePicker
+                    selected={newActivity.when}
+                    onChange={(date) => setNewActivity({ ...newActivity, when: date })}
+                    showTimeSelect
+                    dateFormat="dd/MM/yyyy HH:mm" // Change format to DD/MM/YYYY HH:mm
+                    className="date-picker-input"
+                    minDate={new Date()} // Prevent selecting past dates
+                  />
+                </div>
+                <div className="form-group">
+                  <h3 className="input-label">Where? (optional)</h3>
+                  <input 
+                    type="text" 
+                    placeholder="Cafeteria, Game Room, etc." 
+                    value={newActivity.location}
+                    onChange={(e) => setNewActivity({...newActivity, location: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <h3 className="input-label">Maximum participants</h3>
+              <select 
+                value={newActivity.maxParticipants}
+                onChange={(e) => setNewActivity({...newActivity, maxParticipants: parseInt(e.target.value)})}
+              >
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <option key={num} value={num}>{num} people</option>
+                ))}
+              </select>
+
+              <div className="privacy-slider-group">
+                <span className="privacy-label">Privacy:</span>
+                <div className="privacy-slider">
+                  <button 
+                    className={`privacy-option ${!newActivity.isPrivate ? 'active' : ''}`}
+                    onClick={() => setNewActivity({ ...newActivity, isPrivate: false })}
+                  >Public</button>
+                  <button 
+                    className={`privacy-option ${newActivity.isPrivate ? 'active' : ''}`}
+                    onClick={() => setNewActivity({ ...newActivity, isPrivate: true })}
+                  >Private</button>
+                </div>
               </div>
             </div>
 
@@ -812,112 +914,114 @@ function App() {
         <div className="modal">
           <div className="modal-content">
             <h2>Edit Activity</h2>
-            <h3>What are you up for?</h3>
-            <div className="activity-type-selection">
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Lunch' ? 'selected lunch' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Lunch', activityName: 'Lunch'})}
-              >
-                <span role="img" aria-label="lunch">🍽️</span>
-                <span>Lunch</span>
-              </button>
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Coffee Break' ? 'selected coffee' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Coffee Break', activityName: 'Coffee Break'})}
-              >
-                <span role="img" aria-label="coffee">☕</span>
-                <span>Coffee Break</span>
-              </button>
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Ping Pong' ? 'selected pingpong' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Ping Pong', activityName: 'Ping Pong'})}
-              >
-                <span role="img" aria-label="ping pong">🏓</span>
-                <span>Ping Pong</span>
-              </button>
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Carpool' ? 'selected carpool' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Carpool', activityName: 'Carpool'})}
-              >
-                <span role="img" aria-label="carpool">🚗</span>
-                <span>Carpool</span>
-              </button>
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Beer' ? 'selected beer' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Beer', activityName: 'Beer'})}
-              >
-                <span role="img" aria-label="beer">🍺</span>
-                <span>Beer</span>
-              </button>
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Icecream' ? 'selected icecream' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Icecream', activityName: 'Icecream'})}
-              >
-                <span role="img" aria-label="icecream">🍦</span>
-                <span>Icecream</span>
-              </button>
-              <button 
-                className={`activity-type-button ${editingActivity.type === 'Custom' ? 'selected custom' : ''}`}
-                onClick={() => setEditingActivity({...editingActivity, type: 'Custom'})}
-              >
-                <span role="img" aria-label="custom">⭐</span>
-                <span>Custom</span>
-              </button>
-            </div>
-
-            <h3 className="input-label">Activity Name</h3>
-            <input 
-              type="text" 
-              placeholder="What's the activity?" 
-              value={editingActivity.activityName || ''}
-              onChange={(e) => setEditingActivity({...editingActivity, activityName: e.target.value})}
-              disabled={editingActivity.type !== 'Custom'}
-            />
-            <div className="form-row">
-              <div className="form-group">
-                <h3 className="input-label">When?</h3>
-                <DatePicker
-                  selected={editingActivity.when}
-                  onChange={(date) => setEditingActivity({ ...editingActivity, when: date })}
-                  showTimeSelect
-                  dateFormat="dd/MM/yyyy HH:mm" // Change format to DD/MM/YYYY HH:mm
-                  className="date-picker-input"
-                  minDate={new Date()} // Prevent selecting past dates
-                />
-              </div>
-              <div className="form-group">
-                <h3 className="input-label">Where? (optional)</h3>
-                <input 
-                  type="text" 
-                  placeholder="Cafeteria, Game Room, etc." 
-                  value={editingActivity.location}
-                  onChange={(e) => setEditingActivity({...editingActivity, location: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <h3 className="input-label">Maximum participants</h3>
-            <select 
-              value={editingActivity.maxParticipants}
-              onChange={(e) => setEditingActivity({...editingActivity, maxParticipants: parseInt(e.target.value)})}
-              disabled={true}
-            >
-              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                <option key={num} value={num}>{num} people</option>
-              ))}
-            </select>
-
-            <div className="privacy-slider-group">
-              <span className="privacy-label">Privacy:</span>
-              <div className="privacy-slider">
+            <div className="modal-scrollable-content">
+              <h3>What are you up for?</h3>
+              <div className="activity-type-selection">
                 <button 
-                  className={`privacy-option ${!editingActivity.isPrivate ? 'active' : ''}`}
-                  onClick={() => setEditingActivity({ ...editingActivity, isPrivate: false })}
-                >Public</button>
+                  className={`activity-type-button ${editingActivity.type === 'Lunch' ? 'selected lunch' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Lunch', activityName: 'Lunch'})}
+                >
+                  <span role="img" aria-label="lunch">🍽️</span>
+                  <span>Lunch</span>
+                </button>
                 <button 
-                  className={`privacy-option ${editingActivity.isPrivate ? 'active' : ''}`}
-                  onClick={() => setEditingActivity({ ...editingActivity, isPrivate: true })}
-                >Private</button>
+                  className={`activity-type-button ${editingActivity.type === 'Coffee Break' ? 'selected coffee' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Coffee Break', activityName: 'Coffee Break'})}
+                >
+                  <span role="img" aria-label="coffee">☕</span>
+                  <span>Coffee Break</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${editingActivity.type === 'Ping Pong' ? 'selected pingpong' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Ping Pong', activityName: 'Ping Pong'})}
+                >
+                  <span role="img" aria-label="ping pong">🏓</span>
+                  <span>Ping Pong</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${editingActivity.type === 'Carpool' ? 'selected carpool' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Carpool', activityName: 'Carpool'})}
+                >
+                  <span role="img" aria-label="carpool">🚗</span>
+                  <span>Carpool</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${editingActivity.type === 'Beer' ? 'selected beer' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Beer', activityName: 'Beer'})}
+                >
+                  <span role="img" aria-label="beer">🍺</span>
+                  <span>Beer</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${editingActivity.type === 'Icecream' ? 'selected icecream' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Icecream', activityName: 'Icecream'})}
+                >
+                  <span role="img" aria-label="icecream">🍦</span>
+                  <span>Icecream</span>
+                </button>
+                <button 
+                  className={`activity-type-button ${editingActivity.type === 'Custom' ? 'selected custom' : ''}`}
+                  onClick={() => setEditingActivity({...editingActivity, type: 'Custom'})}
+                >
+                  <span role="img" aria-label="custom">⭐</span>
+                  <span>Custom</span>
+                </button>
+              </div>
+
+              <h3 className="input-label">Activity Name</h3>
+              <input 
+                type="text" 
+                placeholder="What's the activity?" 
+                value={editingActivity.activityName || ''}
+                onChange={(e) => setEditingActivity({...editingActivity, activityName: e.target.value})}
+                disabled={editingActivity.type !== 'Custom'}
+              />
+              <div className="form-row">
+                <div className="form-group">
+                  <h3 className="input-label">When?</h3>
+                  <DatePicker
+                    selected={editingActivity.when}
+                    onChange={(date) => setEditingActivity({ ...editingActivity, when: date })}
+                    showTimeSelect
+                    dateFormat="dd/MM/yyyy HH:mm" // Change format to DD/MM/YYYY HH:mm
+                    className="date-picker-input"
+                    minDate={new Date()} // Prevent selecting past dates
+                  />
+                </div>
+                <div className="form-group">
+                  <h3 className="input-label">Where? (optional)</h3>
+                  <input 
+                    type="text" 
+                    placeholder="Cafeteria, Game Room, etc." 
+                    value={editingActivity.location}
+                    onChange={(e) => setEditingActivity({...editingActivity, location: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <h3 className="input-label">Maximum participants</h3>
+              <select 
+                value={editingActivity.maxParticipants}
+                onChange={(e) => setEditingActivity({...editingActivity, maxParticipants: parseInt(e.target.value)})}
+                disabled={true}
+              >
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <option key={num} value={num}>{num} people</option>
+                ))}
+              </select>
+
+              <div className="privacy-slider-group">
+                <span className="privacy-label">Privacy:</span>
+                <div className="privacy-slider">
+                  <button 
+                    className={`privacy-option ${!editingActivity.isPrivate ? 'active' : ''}`}
+                    onClick={() => setEditingActivity({ ...editingActivity, isPrivate: false })}
+                  >Public</button>
+                  <button 
+                    className={`privacy-option ${editingActivity.isPrivate ? 'active' : ''}`}
+                    onClick={() => setEditingActivity({ ...editingActivity, isPrivate: true })}
+                  >Private</button>
+                </div>
               </div>
             </div>
 
@@ -948,6 +1052,22 @@ function App() {
                 setInviteMessageType(''); // Clear message type on cancel
               }}>Cancel</button>
               <button onClick={handleInviteUser}>Invite</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Search Feedback Modal */}
+      {showSearchFeedback && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Search Results</h2>
+            <p>{searchMessage}</p>
+            <div className="modal-buttons">
+              <button onClick={() => {
+                setShowSearchFeedback(false);
+                setSearchMessage('');
+              }}>Close</button>
             </div>
           </div>
         </div>

@@ -24,6 +24,12 @@ header {
 
 header h1 { font-size: 2rem; }
 header p { color: #555; }
+
+.app-logo {
+  height: 50px; /* Adjust height as needed */
+  margin-bottom: 0.5rem; /* Space between logo and slogan */
+}
+
 .new-button { 
   background: linear-gradient(to right, #4f46e5, #3b82f6); 
   color: white; 
@@ -187,43 +193,56 @@ header p { color: #555; }
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* Align to the top */
   z-index: 1000;
+  padding-top: 2rem; /* Add top padding */
+  padding-bottom: 2rem; /* Consistent padding-bottom for the modal itself */
 }
 
 .modal-content {
   background: white;
-  padding: 2rem;
+  padding: 1rem; /* Consistent padding for top, left, right */
+  padding-bottom: 0; /* Remove padding-bottom here, handled by buttons' padding-bottom */
   border-radius: 8px;
   width: 90%;
   max-width: 600px;
+  max-height: calc(100vh - 4rem); /* Dynamic height calculation */
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-scrollable-content {
+  flex-grow: 1; /* Allows this div to take all available space */
+  overflow-y: auto; /* Makes only the content inside this div scrollable */
+  padding-top: 0; /* Removed padding-top for consistent spacing */
+  padding-bottom: 0; /* Removed padding-bottom for consistent spacing */
 }
 
 .modal-content h2 {
   margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
 }
 
 .modal-content h3 {
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
   color: #555;
 }
 
 .activity-type-selection {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .activity-type-button {
   background: #f0f0f0;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -236,8 +255,8 @@ header p { color: #555; }
 }
 
 .activity-type-button span[role="img"] {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .activity-type-button.selected {
@@ -256,9 +275,9 @@ header p { color: #555; }
 .activity-type-button.selected.icecream { background-color: #e0f7fa; border-color: #00bcd4; }
 
 .input-label {
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
   color: #555;
 }
 
@@ -266,17 +285,17 @@ header p { color: #555; }
 .modal-content select,
 .date-picker-input {
   width: 100%;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
+  padding: 0.45rem;
+  margin-bottom: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  box-sizing: border-box; /* Ensures padding doesn't increase width */
+  box-sizing: border-box;
 }
 
 .form-row {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .form-group {
@@ -285,17 +304,23 @@ header p { color: #555; }
 
 .modal-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   justify-content: flex-end;
-  margin-top: 2rem;
+  margin-top: auto; /* Pushes buttons to the bottom of the flex column */
+  padding: 0.75rem; /* Padding for the buttons container itself */
+  background: white; /* Ensure consistent background with modal-content */
+  border-top: 1px solid #eee; /* Visual separator from content */
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+  margin-bottom: 0; /* Ensure no extra margin pushes it out */
+  padding-bottom: 3.5rem; /* Explicit and increased padding-bottom for dock clearance */
 }
 
 .modal-buttons button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.45rem 0.9rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 
 .modal-buttons button:first-child {
@@ -584,9 +609,9 @@ header p { color: #555; }
 .privacy-slider-group {
   display: flex;
   align-items: center;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  gap: 1rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.8rem;
+  gap: 0.5rem;
 }
 
 .privacy-label {
@@ -605,11 +630,11 @@ header p { color: #555; }
 
 .privacy-slider .privacy-option {
   flex: 1;
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.7rem;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #555;
   transition: all 0.2s ease-in-out;
 }
@@ -629,4 +654,37 @@ header p { color: #555; }
 .privacy-slider .privacy-option:last-child.active {
   border-top-right-radius: 5px;
   border-bottom-right-radius: 5px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.search-bar input {
+  flex-grow: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.search-bar button {
+  background: linear-gradient(to right, #4f46e5, #3b82f6); 
+  color: white; 
+  padding: 0.75rem 1.2rem; 
+  border-radius: 6px; 
+  border: none; 
+  cursor: pointer; 
+  font-size: 1rem;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.search-feedback-message {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #555;
+  font-style: italic;
 }
