@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './App.css';
 import logo from './assets/logo.png'; // Import the logo image
+import aiIcon from './assets/ai_icon.png'; // Import AI icon
 
 const socket = io('http://localhost:4000');
 
@@ -598,7 +599,7 @@ function App() {
       <header>
         <div className="header-left">
           <img src={logo} alt="TeamUp Logo" className="app-logo" />
-        <p>Join ongoing activities or start something new</p>
+          <p>Join ongoing activities or start something new</p>
         </div>
         <div className="header-right">
           {currentUser ? (
@@ -637,61 +638,13 @@ function App() {
               )}
             </button>
           )}
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="Search activities (e.g., 'lunch with team', 'outdoor walk this weekend')"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
-                }
-              }}
-            />
-            <button onClick={handleSearch}>Search</button>
-          </div>
           <button 
             className="new-button"
             onClick={() => setShowNewActivityModal(true)}
-            disabled={!currentUser} /* Disable if not logged in */
+            disabled={!currentUser}
           >+ I'm Up For...</button>
         </div>
       </header>
-
-      {/* Authentication Modal */}
-      {showAuthModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>{isLogin ? 'Login' : 'Sign Up'}</h2>
-            {authError && <p className="error-message">{authError}</p>}
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name"
-              value={authForm.fullName}
-              onChange={handleAuthChange}
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={authForm.email}
-              onChange={handleAuthChange}
-            />
-            <div className="modal-buttons">
-              <button onClick={handleAuthSubmit}>{isLogin ? 'Login' : 'Sign Up'}</button>
-              <button onClick={() => setShowAuthModal(false)}>Cancel</button>
-            </div>
-            <p className="auth-toggle-text">
-              {isLogin ? 'Don\'t have an account?' : 'Already have an account?'}
-              <span onClick={() => setIsLogin(!isLogin)} className="auth-toggle-link">
-                {isLogin ? ' Sign Up' : ' Login'}
-              </span>
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="activity-filters">
         <div className="main-filters">
@@ -719,6 +672,24 @@ function App() {
               {timeFilter}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="search-container">
+        <div className="search-bar">
+          <img src={aiIcon} alt="AI Search Icon" className="ai-search-icon" />
+          <input
+            type="text"
+            placeholder="Search activities using AI(e.g., 'lunch with team', 'outdoor walk this weekend')"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+          />
+          <button onClick={handleSearch}>Search</button>
         </div>
       </div>
 
@@ -1069,6 +1040,58 @@ function App() {
                 setSearchMessage('');
               }}>Close</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Auth Modal */}
+      {showAuthModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>{isLogin ? 'Login' : 'Sign Up'}</h2>
+            {authError && <p className="error-message">{authError}</p>}
+            <div className="modal-scrollable-content">
+              <div className="form-group">
+                <h3 className="input-label">Full Name</h3>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={authForm.fullName}
+                  onChange={handleAuthChange}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              <div className="form-group">
+                <h3 className="input-label">Email</h3>
+                <input
+                  type="email"
+                  name="email"
+                  value={authForm.email}
+                  onChange={handleAuthChange}
+                  placeholder="Enter your email"
+                />
+              </div>
+            </div>
+            <div className="modal-buttons">
+              <button onClick={() => {
+                setShowAuthModal(false);
+                setAuthError('');
+                setAuthForm({ fullName: '', email: '' });
+              }}>Cancel</button>
+              <button onClick={handleAuthSubmit}>{isLogin ? 'Login' : 'Sign Up'}</button>
+            </div>
+            <p className="auth-toggle-text">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}
+              <span 
+                className="auth-toggle-link" 
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setAuthError('');
+                }}
+              >
+                {isLogin ? ' Sign Up' : ' Login'}
+              </span>
+            </p>
           </div>
         </div>
       )}
